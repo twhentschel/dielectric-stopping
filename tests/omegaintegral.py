@@ -37,9 +37,9 @@ sumrule = np.pi/2 * wp
 
 
 ####### Step 1: Take a peak #######
-"""
+
 # Make the data
-k = 0.2 # a.u.
+k = 0.5 # a.u.
 w = np.linspace(0, 4*wp, 200)
 elf = np.asarray([MD.ELF(k, x, Tau, muau, 0) for x in w])
 
@@ -51,7 +51,7 @@ plt.ylabel('ELF')
 plt.legend()
 
 plt.show()
-"""
+
 ####### Step 2: Integration attempt 1 #######
 '''
 For this step, we want to compare the integration of the ELF with the 
@@ -74,9 +74,9 @@ wlim = (0, 4*wp)
 # Set the tolerance
 tol = 1.49012e-8
 # Solve the corresponding ODE
-omegaintegral = solve_ivp(omegaintegrand, wlim, y0, method='LSODA',
+omegaintegral = solve_ivp(omegaintegrand, wlim, y0, #method='LSODA',
                           rtol=tol, atol=tol)
 
-print("omega integral = {} ; sum rule = {}".format(omegaintegral[0][-1],
+print("omega integral = {} ; sum rule = {}".format(omegaintegral.y[0][-1],
                                                    sumrule))
-
+plt.scatter(omegaintegral.t, np.zeros(len(omegaintegral.t)))
