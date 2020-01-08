@@ -19,6 +19,7 @@ of Warm Dense Matter".
 import numpy as np
 from scipy.integrate import odeint
 from scipy.integrate import solve_ivp
+
 def realintegrand(p, y, k, omega, kBT, mu, nu, delta):
     """
     The integrand present in the formula for the real part of the general
