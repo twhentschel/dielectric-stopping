@@ -10,6 +10,7 @@ power.
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp 
+from scipy.integrate import quad
 # User defined pacakges
 import dielectricfunction.MerminDielectric as MD
 
@@ -33,13 +34,13 @@ neau  = ne * 1/cm2au**3
 # Important constants
 kF = np.sqrt((3 * np.pi**2 * neau)**(2/3))
 wp = np.sqrt(4 * np.pi * neau)
-sumrule = np.pi/2 * wp
+sumrule = np.pi/2 * wp**2
 
 
 ####### Step 1: Take a peak #######
 
 # Make the data
-k = 0.5 # a.u.
+k = 0.4 # a.u.
 w = np.linspace(0, 4*wp, 200)
 elf = np.asarray([MD.ELF(k, x, Tau, muau, 0) for x in w])
 
@@ -50,7 +51,7 @@ plt.xlabel(r'$\omega/\omega_p$')
 plt.ylabel('ELF')
 plt.legend()
 
-plt.show()
+#plt.show()
 
 ####### Step 2: Integration attempt 1 #######
 '''
@@ -61,7 +62,7 @@ We will just eye-ball the upper limit of the integral using the graphs from
 step 1.
 '''
 
-k = 0.5
+k = k
 
 # Define the integrand
 omegaintegrand = lambda w, y : w * MD.ELF(k, w, Tau, muau, 0)
@@ -74,9 +75,11 @@ wlim = (0, 4*wp)
 # Set the tolerance
 tol = 1.49012e-8
 # Solve the corresponding ODE
-omegaintegral = solve_ivp(omegaintegrand, wlim, y0, #method='LSODA',
+omegaintegral = solve_ivp(omegaintegrand, wlim, y0,# method='DOP853',
                           rtol=tol, atol=tol)
 
 print("omega integral = {} ; sum rule = {}".format(omegaintegral.y[0][-1],
                                                    sumrule))
-plt.scatter(omegaintegral.t, np.zeros(len(omegaintegral.t)))
+plt.scatter(omegaintegral.t/wp, np.zeros(len(omegaintegral.t)))
+
+plt.show()
