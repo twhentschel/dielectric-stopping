@@ -96,6 +96,7 @@ for y in v:
 plt.xlabel(r'$k (1/a_0)')
 plt.title('k-integrand for Al at T=6 eV')
 plt.legend()
+plt.savefig('kintegrand1')
 plt.show()
 
 # def momint(v, nu, T, mu):
