@@ -87,13 +87,14 @@ def omegaint(v, k, nu, T, mu):
     return integrate.trapz(integrand, w)
 
 v = [0.1, 1, 5, 10]
-k = np.linspace(5e-2, 5)
+k = np.linspace(5e-2, 5, 2)
+fig, ax = plt.subplots()
 for y in v:
     kint = [omegaint(y, x, nu, Tau, muau) for x in k]
-    p = plt.plot(k, kint, label='v={}'.format(y))
-    plt.axvline(2*y, linestyle='-.', c=p[-1].get_color())
+    p = ax.plot(k, kint, label='v={}'.format(y))
+    ax.axvline(2*y, linestyle='-.', c=p[-1].get_color())
 
-plt.xlabel(r'$k (1/a_0)')
+plt.xlabel(r'$k (1/a_0)$')
 plt.title('k-integrand for Al at T=6 eV')
 plt.legend()
 plt.show()
