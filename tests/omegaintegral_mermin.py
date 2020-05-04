@@ -99,24 +99,21 @@ def omegaint(v, k, nu, T, mu):
 # ax.set_xlabel(r'$k ~ (1/a_0)$')
 # ax.set_title('k-integrand for Al at T=6 eV')
 # ax.legend()
-=======
-v = [0.1, 1, 5, 10]
-k = np.linspace(5e-2, 5)
-fig, ax = plt.subplots()
-for y in v:
-    kint = [omegaint(y, x, nu, Tau, muau) for x in k]
-    p = ax.plot(k, kint, label='v={}'.format(y))
-    ax.axvline(2*y, linestyle='-.', c=p[-1].get_color())
+# v = [0.1, 1, 5, 10]
+# k = np.linspace(5e-2, 5)
+# fig, ax = plt.subplots()
+# for y in v:
+#     kint = [omegaint(y, x, nu, Tau, muau) for x in k]
+#     p = ax.plot(k, kint, label='v={}'.format(y))
+#     ax.axvline(2*y, linestyle='-.', c=p[-1].get_color())
 
-ax.set_xlabel(r'$k (1/a_0)$')
-ax.set_title('k-integrand for Al at T=6 eV')
-ax.legend()
+# ax.set_xlabel(r'$k (1/a_0)$')
+# ax.set_title('k-integrand for Al at T=6 eV')
+# ax.legend()
 
-plt.savefig('kintegrand1')
-plt.show()
->>>>>>> 03b7334dccd2f5267d02dc7f6706f9bcbcfd9629
-
+# plt.savefig('kintegrand1')
 # plt.show()
+
 
 def momint(v, nu, T, mu, k0):
     
@@ -132,26 +129,34 @@ def drude_ELF(w, nu, wp):
     return drude_eps.imag / (drude_eps.real**2 + drude_eps.imag**2)
 
 
-def error(v, nu, wmax, wp, k0):
-    # find maximum of the drude ELF
+def error1(v, nu, wmax, wp, k0):
+    
     return v * k0 * wmax * drude_ELF(wmax, nu, wp)
 
-v = np.linspace(1e-3, 10, 2)
+def error2(v, nu, T, mu, k0):
+    return v**2 * k0**2 / 2 * MD.ELF(k0, k0*v, nu(k0*v), T, mu)
+
+v = np.linspace(1e-3, 10, 100)
 S = [2 / np.pi / x**2 * momint(x, nu, Tau, muau, 5e-2) for x in v]
 S = np.asarray(S)
 # Save data just in case something breaks
 np.save('stopping_data_tmp', S)
 
 wmax_drude = 0.588
-S_error = [2 / np.pi / x**2 * error(x, nu, wmax_drude, wpau, 5e-2) for x in v]
-S_error = np.asarray(S_error)
-#prefactor = 2 / np.pi / v**2
-plt.plot(v, S)
-plt.fill_between(v, S, S + S_error, alpha=0.2)
+S_error1 = [2 / np.pi / x**2 * error1(x, nu, wmax_drude, wpau, 5e-2) 
+            for x in v]
+S_error1 = np.asarray(S_error1)
 
+# S_error2 will break if k0*v is less than wmin
+S_error2 = [2 / np.pi / x**2 * error2(x, nu, Tau, muau, 5e-2) 
+            for x in v]
+S_error2 = np.asarray(S_error2)
+plt.plot(v, S)
+plt.fill_between(v[1:], S[1:], S[1:] + S_error1[1:], alpha=0.2)
+plt.fill_between(v, S, S + S_error2, color = 'C1',  alpha=0.2)
 plt.xlabel('v (au)')
 plt.ylabel('Stopping Power (au)')
 plt.title('Stopping power for solid Al at 6 ev')
 
-
+plt.savefig('stoppingpower')
 
