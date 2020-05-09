@@ -10,7 +10,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interpolate
 import scipy.integrate as integrate
+from scipy.integrate import solve_ivp
 from scipy import optimize
+import time
 
 from dielectricfunction_symln.Mermin import MerminDielectric as MD
 
@@ -47,33 +49,35 @@ f_imnu = interpolate.interp1d(wdata, ImnuT)
 nu = lambda w: f_renu(w) + 1j*f_imnu(w)
 #nu = lambda w: neau * RenuT[0]/(RenuT[0]**2 + w**2)
 
-# w = np.linspace(wmin, 100, 200)
-# k = 1
+##### Omega integral #####
+# w = np.linspace(wmin, 10, 200)
+# k = 1e-1
 
 # # Define the integrand
-# omegaintegrand = lambda x : x * MD.ELF(k, x, nu(x), Tau, muau)
-
-# integrand = [omegaintegrand(x) for x in w]
+# omegaintegrand = lambda x, y : x * MD.ELF(k, x, nu(x), Tau, muau)
 
 # # integrate
+# s = time.time()
+# integrand = [omegaintegrand(x, 0) for x in w]
 # I1 = integrate.trapz(integrand, w)
-# #I2 = integrate.quad(omegaintegrand, wmin, 2)
-# print("trapezoidal integration = {}".format(I1))
-# #print("adaptive integration = {}".format(I2))
+# e = time.time()
+# print("trapezoidal integration = {}, time ={} s".format(I1, e-s))
+# s = time.time()
+# I2 = integrate.quad(omegaintegrand, wmin, 10, args=(0), epsabs=1e-3, epsrel=1e-3)
+# e = time.time()
+# print("adaptive integration = {}, time = {} s".format(I2, e-s))
+# s= time.time()
+# I3 = solve_ivp(omegaintegrand, (wmin, 10), [0])
+# e = time.time()
+# print("ODE solve = {}, time = {} s".format(I3.y[0][-1], e-s))
 # print("Sum Rule = {}".format(sumrule))
 
 
-# #eps= np.asarray([MD.MerminDielectric(k, x, nu(x), Tau, muau) for x in w])
-
-# #plt.plot(w, eps.real, label='real')
-# #plt.plot(w, eps.imag, label='imag')
-
-# #plt.plot(w, eps.imag/(eps.imag**2 + eps.real**2))
-# #plt.legend()
-# #plt.show()
+# plt.plot(w, integrand)
+# plt.show()
 
 # k-integrand
-def omegaint(v, k, nu, T, mu):
+def omegaint(k, v, nu, T, mu):
     
     omegaintegrand = lambda x : x / k * MD.ELF(k, x, nu(x), T, mu) 
     
@@ -87,32 +91,32 @@ def omegaint(v, k, nu, T, mu):
     
     return integrate.trapz(integrand, w)
 
+def omegaint_adapt(k, v, nu, T, mu):
+    
+    omegaintegrand = lambda x, y : x / k * MD.ELF(k, x, nu(x), T, mu) 
+    
+    if k*v < wmin :
+        return 0
+    if k*v > max(wdata):
+        return 0
+    
+    return solve_ivp(omegaintegrand, (wmin, k*v), [0]).y[0][-1]
+
 ### Look at the k-integrand ###
-# v = [0.1, 1, 5, 10]
-# k = np.linspace(5e-2, 5, 2)
-# fig, ax = plt.subplots()
-# for y in v:
-#     kint = [omegaint(y, x, nu, Tau, muau) for x in k]
-#     p = ax.plot(k, kint, label='v={}'.format(y))
-#     ax.axvline(2*y, linestyle='-.', c=p[-1].get_color())
+v = [5, 7, 10, 11]
+k = np.linspace(0.1,0.3, 100)
+fig, ax = plt.subplots()
+for y in v:
+    kint = [omegaint_adapt(y, x, nu, Tau, muau) for x in k]
+    p = ax.plot(k, kint, label='v={}'.format(y))
+    ax.axvline(2*y, linestyle='-.', c=p[-1].get_color())
 
-# ax.set_xlabel(r'$k ~ (1/a_0)$')
-# ax.set_title('k-integrand for Al at T=6 eV')
-# ax.legend()
-# v = [0.1, 1, 5, 10]
-# k = np.linspace(5e-2, 5)
-# fig, ax = plt.subplots()
-# for y in v:
-#     kint = [omegaint(y, x, nu, Tau, muau) for x in k]
-#     p = ax.plot(k, kint, label='v={}'.format(y))
-#     ax.axvline(2*y, linestyle='-.', c=p[-1].get_color())
+ax.set_xlabel(r'$k (1/a_0)$')
+ax.set_title('k-integrand for Al at T=6 eV')
+ax.legend()
 
-# ax.set_xlabel(r'$k (1/a_0)$')
-# ax.set_title('k-integrand for Al at T=6 eV')
-# ax.legend()
-
-# plt.savefig('kintegrand1')
-# plt.show()
+plt.savefig('kintegrand1')
+plt.show()
 
 
 def momint(v, nu, T, mu, k0):
@@ -120,43 +124,50 @@ def momint(v, nu, T, mu, k0):
     # Define the integrand
     #momintegrand = lambda k: omegaint(v, k, nu, T, mu)
     k = np.linspace(k0, 2*v, 100)
-    integrand = [omegaint(v, x, nu, Tau, muau) for x in k]
+    integrand = [omegaint(x, v, nu, Tau, muau) for x in k]
     
     return integrate.trapz(integrand, k)
 
-def drude_ELF(w, nu, wp):
-    drude_eps = 1 - wp**2 / (w**2 + 1j * w * nu(w))
-    return drude_eps.imag / (drude_eps.real**2 + drude_eps.imag**2)
-
-
-def error1(v, nu, wmax, wp, k0):
+def momint_adapt(v, nu, T, mu, k0):
+    kintegrand = lambda k, y : omegaint_adapt(k, v, nu, T, mu)
     
-    return v * k0 * wmax * drude_ELF(wmax, nu, wp)
+    return solve_ivp(kintegrand, (k0, 2*v), [0]).y[0][-1]
 
-def error2(v, nu, T, mu, k0):
-    return v**2 * k0**2 / 2 * MD.ELF(k0, k0*v, nu(k0*v), T, mu)
+# def drude_ELF(w, nu, wp):
+#     drude_eps = 1 - wp**2 / (w**2 + 1j * w * nu(w))
+#     return drude_eps.imag / (drude_eps.real**2 + drude_eps.imag**2)
 
-v = np.linspace(1e-3, 10, 100)
-S = [2 / np.pi / x**2 * momint(x, nu, Tau, muau, 5e-2) for x in v]
-S = np.asarray(S)
-# Save data just in case something breaks
-np.save('stopping_data_tmp', S)
 
-wmax_drude = 0.588
-S_error1 = [2 / np.pi / x**2 * error1(x, nu, wmax_drude, wpau, 5e-2) 
-            for x in v]
-S_error1 = np.asarray(S_error1)
+# def error1(v, nu, wmax, wp, k0):
+    
+#     return v * k0 * wmax * drude_ELF(wmax, nu, wp)
 
-# S_error2 will break if k0*v is less than wmin
-S_error2 = [2 / np.pi / x**2 * error2(x, nu, Tau, muau, 5e-2) 
-            for x in v]
-S_error2 = np.asarray(S_error2)
-plt.plot(v, S)
-plt.fill_between(v[1:], S[1:], S[1:] + S_error1[1:], alpha=0.2)
-plt.fill_between(v, S, S + S_error2, color = 'C1',  alpha=0.2)
-plt.xlabel('v (au)')
-plt.ylabel('Stopping Power (au)')
-plt.title('Stopping power for solid Al at 6 ev')
+# def error2(v, nu, T, mu, k0):
+#     return v**2 * k0**2 / 2 * MD.ELF(k0, k0*v, nu(k0*v), T, mu)
 
-plt.savefig('stoppingpower')
+# v = np.linspace(1e-3, 10, 100)
+# #S = [2 / np.pi / x**2 * momint(x, nu, Tau, muau, 5e-2) for x in v]
+# #S = np.asarray(S)
+# # Save data just in case something breaks
+# #np.save('stopping_data_tmp', S)
+
+# S = np.load('tests/stopping_data_tmp.npy') / kFau**2
+
+# wmax_drude = 0.588
+# S_error1 = [2 / np.pi / x**2 * error1(x, nu, wmax_drude, wpau, 5e-2) 
+#             for x in v]
+# S_error1 = np.asarray(S_error1) / kFau**2
+
+# # S_error2 will break if k0*v is less than wmin
+# S_error2 = [2 / np.pi / x**2 * error2(x, nu, Tau, muau, 5e-2) 
+#             for x in v]
+# S_error2 = np.asarray(S_error2) / kFau**2
+# plt.plot(v, S)
+# plt.fill_between(v[1:], S[1:], S[1:] + S_error1[1:], color='C2', alpha=0.2)
+# plt.fill_between(v, S, S + S_error2, color = 'C1',  alpha=0.2)
+# plt.xlabel(r'$v$ (au)')
+# plt.ylabel(r'$S(v) / Z^2$')
+# plt.title('Stopping power for solid Al at 6 ev')
+
+# plt.savefig('stoppingpower')
 
