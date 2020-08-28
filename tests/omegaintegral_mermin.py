@@ -148,8 +148,8 @@ def omegaint(k, v, nu, T, mu):
 
 def omegaint_adapt(k, v, nu, T, mu, G):
     
-    omegaintegrand = lambda x, y : x * xmd.ELF(k, x, nu(x), T, mu, G)
-    # G(k, neau, Tau)) 
+    omegaintegrand = lambda x, y : x * xmd.ELF(k, x, nu(x), T, mu, 
+                                               G(k, neau, Tau)) 
     
     if k*v < wmin :
         return 0
@@ -214,7 +214,7 @@ parameters = 'Te = {} [eV]\nne = {:e} [1/cc]\nmu = {} [au]\n'.\
 head = 'v[a.u.]    stopping number[a.u.]'
 S = np.asarray(S)
 # Save data just in case something breaks
-np.savetxt('stopdata_Mermin_hydrogen_1.txt', np.transpose([v, S]), 
+np.savetxt('stopdata_xmermin_hydrogen_1.txt', np.transpose([v, S]), 
            header = runtime + parameters + head)
 
 # # S = np.loadtxt('stopping_data_adapt_tmp.out') / kFau**2
