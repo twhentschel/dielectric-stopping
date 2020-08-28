@@ -148,8 +148,8 @@ def omegaint(k, v, nu, T, mu):
 
 def omegaint_adapt(k, vlow, vhigh, nu, T, mu, G):
     
-    omegaintegrand = lambda x, y : x * xmd.ELF(k, x, nu(x), T, mu, 0)
-    # G(k, neau, Tau)) 
+    omegaintegrand = lambda x, y : x * xmd.ELF(k, x, nu(x), T, mu,
+                                               G(k, neau, Tau)) 
     
     if k*vlow < wmin :
         return 0
