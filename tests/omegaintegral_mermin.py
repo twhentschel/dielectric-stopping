@@ -146,16 +146,16 @@ def omegaint(k, v, nu, T, mu):
     
     return integrate.trapz(integrand, w)
 
-def omegaint_adapt(k, vlow, vhigh, nu, T, mu, G):
+def omegaint_adapt(k, v, nu, T, mu, G):
     
-    omegaintegrand = lambda x, y : x * xmd.ELF(k, x, nu(x), T, mu, 0)
+    omegaintegrand = lambda x, y : x * xmd.ELF(k, x, nu(x), T, mu, G)
     # G(k, neau, Tau)) 
     
-    if k*vlow < wmin :
+    if k*v < wmin :
         return 0
-    if k*vhigh > max(wdata):
+    if k*v > max(wdata):
         return 0
-    I = solve_ivp(omegaintegrand, (k*vlow, k*vhigh), [0], rtol=1e-6, 
+    I = solve_ivp(omegaintegrand, (wmin, k*v), [0], rtol=1e-6, 
                   atol=1e-6)
 
     return I.y[0][-1]
@@ -186,9 +186,9 @@ def momint(v, nu, T, mu, k0):
     
     return integrate.trapz(integrand, k)
 
-def momint_adapt(vlow, vhigh, nu, T, mu, G, k0):
-    kintegrand = lambda k, y : 1/k * omegaint_adapt(k, vlow, vhigh, nu, T, mu, G)
-    sol = solve_ivp(kintegrand, (k0, 2*vhigh), [0])
+def momint_adapt(v, nu, T, mu, G, k0):
+    kintegrand = lambda k, y : 1/k * omegaint_adapt(k, v, nu, T, mu, G)
+    sol = solve_ivp(kintegrand, (k0, 2*v), [0])
     return sol.y[0][-1]
 
 def drude_ELF(w, nu, wp):
@@ -203,32 +203,18 @@ def error1(v, nu, wmax, wp, k0):
 def error2(v, nu, T, mu, k0):
     return v**2 * k0**2 / 2 * MD.ELF(k0, k0*v, nu(k0*v), T, mu)
 
-def sequentialstopping(varr, nu, T, mu, G, k0, L0=0):
-    '''
-    varr: array-like
-        Array of velocities. Assumption is that the first velocity corresponds
-        zero stopping, but you can control this with L0.
-    '''
-    L = np.zeros(len(varr))
-    L[0] = L0
-    for i in range(1, len(v)):
-        L[i] = momint_adapt(v[i-1], v[i], nu, T, mu, G, k0)
-
-    return np.cumsum(L)
 
 v = np.linspace(1e-3, 12, 100)
-v = np.append([0], v)
 k0 = 5e-2
 s = time.time()
-#S = [momint_adapt(x, nu, Tau, muau, GPIMC, 5e-2) for x in v]
-L = sequentialstopping(v, nu, Tau, muau, GPIMC, k0)
+S = [momint_adapt(x, nu, Tau, muau, GPIMC, 5e-2) for x in v]
 runtime = 'run time = {} s\n'.format(time.time() - s)
 parameters = 'Te = {} [eV]\nne = {:e} [1/cc]\nmu = {} [au]\n'.\
              format(TeV, ne_cgs,muau)
 head = 'v[a.u.]    stopping number[a.u.]'
-L = np.asarray(L)
+S = np.asarray(S)
 # Save data just in case something breaks
-np.savetxt('stopdata_Mermin_hydrogen_1seq.txt', np.transpose([v, L]), 
+np.savetxt('stopdata_Mermin_hydrogen_1.txt', np.transpose([v, S]), 
            header = runtime + parameters + head)
 
 # # S = np.loadtxt('stopping_data_adapt_tmp.out') / kFau**2
