@@ -228,7 +228,7 @@ parameters = 'Te = {} [eV]\nne = {:e} [1/cc]\nmu = {} [au]\n'.\
 head = 'v[a.u.]    stopping number[a.u.]'
 L = np.asarray(L)
 # Save data just in case something breaks
-np.savetxt('stopdata_Mermin_hydrogen_1seq.txt', np.transpose([v, L]), 
+np.savetxt('stopdataxmermin_hydrogen_1seq.txt', np.transpose([v, L]), 
            header = runtime + parameters + head)
 
 # # S = np.loadtxt('stopping_data_adapt_tmp.out') / kFau**2
