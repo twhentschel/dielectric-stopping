@@ -26,8 +26,8 @@ from keras.layers.advanced_activations import LeakyReLU
 
 ######## Parameters ###############
 a0 = 0.529*10**-8 # Bohr radius, cm
-TeV = 10 # Temperature, eV
-ne_cgs = 6*10**23 # electron density, cm^-3
+TeV = 2 # Temperature, eV
+ne_cgs = 2*10**23 # electron density, cm^-3
 neau = ne_cgs * a0**3 # electron density, au
 EFau =  0.5*(3*np.pi**2*neau)**(2/3)# Fermi energy, au
 kFau = np.sqrt(2*EFau) # Fermi momentum/wavevector, au
@@ -38,7 +38,7 @@ sumrule = np.pi/2 * wpau**2
 
 # Needed to assume some mu. For this, we are assuming the material and then
 # using a spreadsheet that Stephanie prepared to get mu
-muau = 0.783 # mu for Hydrogen at 10 eV, 10g/cc
+muau = 0.437 # mu for Carbon at 2 eV, 10g/cc
 
 #########################################
 
@@ -53,7 +53,8 @@ wmin = min(wdata)
 f_renu = interpolate.interp1d(wdata, RenuT)
 f_imnu = interpolate.interp1d(wdata, ImnuT)
 
-nu = lambda w: f_renu(w) + 1j*f_imnu(w)
+rpascale = 1#1e-2
+nu = lambda w: rpascale*(f_renu(w) + 1j*f_imnu(w))
 #nu = lambda w: neau * RenuT[0]/(RenuT[0]**2 + w**2)
 
 # def nu(w): 
@@ -188,7 +189,8 @@ def momint(v, nu, T, mu, k0):
 
 def momint_adapt(vlow, vhigh, nu, T, mu, G, k0):
     kintegrand = lambda k, y : 1/k * omegaint_adapt(k, vlow, vhigh, nu, T, mu, G)
-    sol = solve_ivp(kintegrand, (k0, 2*vhigh), [0])
+    kwidth = np.sqrt(2 * (10 * T + mu))
+    sol = solve_ivp(kintegrand, (k0, 2*(vhigh + kwidth)), [0])
     return sol.y[0][-1]
 
 def drude_ELF(w, nu, wp):
@@ -197,7 +199,6 @@ def drude_ELF(w, nu, wp):
 
 
 def error1(v, nu, wmax, wp, k0):
-    
     return v * k0 * wmax * drude_ELF(wmax, nu, wp)
 
 def error2(v, nu, T, mu, k0):
@@ -216,7 +217,7 @@ def sequentialstopping(varr, nu, T, mu, G, k0, L0=0):
 
     return np.cumsum(L)
 
-v = np.linspace(1e-3, 12, 100)
+v = np.linspace(1e-3, 12, 50)
 v = np.append([0], v)
 k0 = 5e-2
 s = time.time()
@@ -228,7 +229,7 @@ parameters = 'Te = {} [eV]\nne = {:e} [1/cc]\nmu = {} [au]\n'.\
 head = 'v[a.u.]    stopping number[a.u.]'
 L = np.asarray(L)
 # Save data just in case something breaks
-np.savetxt('stopdataxmermin_hydrogen_1seq.txt', np.transpose([v, L]), 
+np.savetxt('stopdata_xmermin_carbon_1seq.txt', np.transpose([v, L]), 
            header = runtime + parameters + head)
 
 # # S = np.loadtxt('stopping_data_adapt_tmp.out') / kFau**2
