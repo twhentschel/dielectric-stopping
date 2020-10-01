@@ -14,7 +14,7 @@ from scipy.integrate import solve_ivp
 from scipy import optimize
 import time
 
-from Mermin import MerminDielectric as MD
+from dielectricfunction_symln.Mermin import MerminDielectric as MD
 from xMermin import xMermin as xmd
 
 # for PIMC UEG data
@@ -206,7 +206,11 @@ def error2(v, nu, T, mu, k0):
     return v**2 * k0**2 / 2 * MD.ELF(k0, k0*v, nu(k0*v), T, mu)
 
 
+<<<<<<< HEAD
 v = np.linspace(5e-3, 12, 100)
+=======
+v = [1e-3, 1.576626262626262598e+00]#np.linspace(1e-3, 12, 100)
+>>>>>>> 47b457b3c5bec1b39f132ec7788892f072f8fff4
 k0 = 5e-2
 s = time.time()
 S = [momint_adapt(x, nu, Tau, muau, GPIMC, 5e-2) for x in v]
@@ -215,9 +219,15 @@ parameters = 'Te = {} [eV]\nne = {:e} [1/cc]\nmu = {} [au]\n'.\
              format(TeV, ne_cgs,muau)
 head = 'v[a.u.]    stopping number[a.u.]'
 S = np.asarray(S)
+print(S)
 # Save data just in case something breaks
+<<<<<<< HEAD
 np.savetxt('stopdata_xmermin_carbon_2.txt', np.transpose([v, S]), 
            header = runtime + parameters + head)
+=======
+# np.savetxt('stopdata_xmermin_hydrogen_1.txt', np.transpose([v, S]), 
+#            header = runtime + parameters + head)
+>>>>>>> 47b457b3c5bec1b39f132ec7788892f072f8fff4
 
 # # S = np.loadtxt('stopping_data_adapt_tmp.out') / kFau**2
 
