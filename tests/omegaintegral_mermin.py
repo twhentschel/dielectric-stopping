@@ -26,8 +26,8 @@ from keras.layers.advanced_activations import LeakyReLU
 
 ######## Parameters ###############
 a0 = 0.529*10**-8 # Bohr radius, cm
-TeV = 10 # Temperature, eV
-ne_cgs = 6*10**23 # electron density, cm^-3
+TeV = 2 # Temperature, eV
+ne_cgs = 2*10**23 # electron density, cm^-3
 neau = ne_cgs * a0**3 # electron density, au
 EFau =  0.5*(3*np.pi**2*neau)**(2/3)# Fermi energy, au
 kFau = np.sqrt(2*EFau) # Fermi momentum/wavevector, au
@@ -38,14 +38,15 @@ sumrule = np.pi/2 * wpau**2
 
 # Needed to assume some mu. For this, we are assuming the material and then
 # using a spreadsheet that Stephanie prepared to get mu
-muau = 0.783 # mu for Hydrogen at 10 eV, 10g/cc
+muau = 0.437 # mu for Carbon at 2 eV, 10g/cc
 
 #########################################
 
 ###### Collision frequencies data ########
-filename = "tests/H_10gpcc_10_eV_vw.txt"
-wdata, RenuT, ImnuT = np.loadtxt(filename, unpack=True)
-
+filename = "tests/C_2_eV_vw.csv"
+wdata, RenuT, ImnuT = np.loadtxt(filename, skiprows=1, unpack=True,
+                                 delimiter=',')
+wdata = wdata / 27.2114 # convert to au
 wmin = min(wdata)
 #nu = 1j*ImnuT; nu += RenuT
 
@@ -188,7 +189,8 @@ def momint(v, nu, T, mu, k0):
 
 def momint_adapt(v, nu, T, mu, G, k0):
     kintegrand = lambda k, y : 1/k * omegaint_adapt(k, v, nu, T, mu, G)
-    sol = solve_ivp(kintegrand, (k0, 2*v), [0])
+    kwidth = np.sqrt(2 * (10 * T + mu))
+    sol = solve_ivp(kintegrand, (k0, 2*(v + kwidth)), [0])
     return sol.y[0][-1]
 
 def drude_ELF(w, nu, wp):
@@ -204,7 +206,7 @@ def error2(v, nu, T, mu, k0):
     return v**2 * k0**2 / 2 * MD.ELF(k0, k0*v, nu(k0*v), T, mu)
 
 
-v = np.linspace(1e-3, 12, 100)
+v = np.linspace(5e-3, 12, 100)
 k0 = 5e-2
 s = time.time()
 S = [momint_adapt(x, nu, Tau, muau, GPIMC, 5e-2) for x in v]
@@ -214,7 +216,7 @@ parameters = 'Te = {} [eV]\nne = {:e} [1/cc]\nmu = {} [au]\n'.\
 head = 'v[a.u.]    stopping number[a.u.]'
 S = np.asarray(S)
 # Save data just in case something breaks
-np.savetxt('stopdata_xmermin_hydrogen_1.txt', np.transpose([v, S]), 
+np.savetxt('stopdata_xmermin_carbon_2.txt', np.transpose([v, S]), 
            header = runtime + parameters + head)
 
 # # S = np.loadtxt('stopping_data_adapt_tmp.out') / kFau**2
