@@ -26,8 +26,8 @@ from keras.layers.advanced_activations import LeakyReLU
 
 ######## Parameters ###############
 a0 = 0.529*10**-8 # Bohr radius, cm
-TeV = 2 # Temperature, eV
-ne_cgs = 2*10**23 # electron density, cm^-3
+TeV = 10 # Temperature, eV
+ne_cgs = 1.38e23 # electron density, cm^-3
 neau = ne_cgs * a0**3 # electron density, au
 EFau =  0.5*(3*np.pi**2*neau)**(2/3)# Fermi energy, au
 kFau = np.sqrt(2*EFau) # Fermi momentum/wavevector, au
@@ -38,13 +38,14 @@ sumrule = np.pi/2 * wpau**2
 
 # Needed to assume some mu. For this, we are assuming the material and then
 # using a spreadsheet that Stephanie prepared to get mu
-muau = 0.437 # mu for Carbon at 2 eV, 10g/cc
+muau = -2.46e-2 # mu for Al at 10 eV, 2.7g/cc
 
 #########################################
 
 ###### Collision frequencies data ########
-filename = "tests/H_10gpcc_10_eV_vw.txt"
-wdata, RenuT, ImnuT = np.loadtxt(filename, unpack=True)
+filename = "tests/Al11_1_1 optical01.txt"
+vars = np.loadtxt(filename, unpack=True, skiprows=31)
+wdata, RenuT, ImnuT = vars[0], vars[9], vars[10]
 
 wmin = min(wdata)
 #nu = 1j*ImnuT; nu += RenuT
@@ -150,7 +151,7 @@ def omegaint(k, v, nu, T, mu):
 def omegaint_adapt(k, vlow, vhigh, nu, T, mu, G):
     
     omegaintegrand = lambda x, y : x * xmd.ELF(k, x, nu(x), T, mu,
-                                               G(k, neau, Tau)) 
+                                               0)# G(k, neau, Tau)) 
     
     if k*vlow < wmin :
         return 0
@@ -229,7 +230,7 @@ parameters = 'Te = {} [eV]\nne = {:e} [1/cc]\nmu = {} [au]\n'.\
 head = 'v[a.u.]    stopping number[a.u.]'
 L = np.asarray(L)
 # Save data just in case something breaks
-np.savetxt('stopdata_xmermin_carbon_1seq.txt', np.transpose([v, L]), 
+np.savetxt('stopdata_mermin_Al_seq 10eV 2.7gpcc (1).txt', np.transpose([v, L]), 
            header = runtime + parameters + head)
 
 # # S = np.loadtxt('stopping_data_adapt_tmp.out') / kFau**2
