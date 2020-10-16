@@ -26,8 +26,8 @@ from keras.layers.advanced_activations import LeakyReLU
 
 ######## Parameters ###############
 a0 = 0.529*10**-8 # Bohr radius, cm
-TeV = 2 # Temperature, eV
-ne_cgs = 2*10**23 # electron density, cm^-3
+TeV = 10 # Temperature, eV
+ne_cgs = 1.38e23 # electron density, cm^-3
 neau = ne_cgs * a0**3 # electron density, au
 EFau =  0.5*(3*np.pi**2*neau)**(2/3)# Fermi energy, au
 kFau = np.sqrt(2*EFau) # Fermi momentum/wavevector, au
@@ -38,15 +38,16 @@ sumrule = np.pi/2 * wpau**2
 
 # Needed to assume some mu. For this, we are assuming the material and then
 # using a spreadsheet that Stephanie prepared to get mu
-muau = 0.437 # mu for Carbon at 2 eV, 10g/cc
+muau = -2.46e-2 # mu for Al at 10 eV, 2.7g/cc
 
 #########################################
 
 ###### Collision frequencies data ########
-filename = "tests/C_2_eV_vw.csv"
-wdata, RenuT, ImnuT = np.loadtxt(filename, skiprows=1, unpack=True,
-                                 delimiter=',')
-wdata = wdata / 27.2114 # convert to au
+filename = "tests/Al11_1_1 optical01.txt"
+vars = np.loadtxt(filename, unpack=True, skiprows=31)
+wdata, RenuT, ImnuT = vars[0], vars[9], vars[10] 
+
+#wdata = wdata / 27.2114 # convert to au
 wmin = min(wdata)
 #nu = 1j*ImnuT; nu += RenuT
 
@@ -149,8 +150,8 @@ def omegaint(k, v, nu, T, mu):
 
 def omegaint_adapt(k, v, nu, T, mu, G):
     
-    omegaintegrand = lambda x, y : x * xmd.ELF(k, x, nu(x), T, mu, 
-                                               G(k, neau, Tau)) 
+    omegaintegrand = lambda x, y : x * xmd.ELF(k, x, nu(x), T, mu,0)
+    # G(k, neau, Tau)) 
     
     if k*v < wmin :
         return 0
@@ -206,28 +207,20 @@ def error2(v, nu, T, mu, k0):
     return v**2 * k0**2 / 2 * MD.ELF(k0, k0*v, nu(k0*v), T, mu)
 
 
-<<<<<<< HEAD
-v = np.linspace(5e-3, 12, 100)
-=======
-v = [1e-3, 1.576626262626262598e+00]#np.linspace(1e-3, 12, 100)
->>>>>>> 47b457b3c5bec1b39f132ec7788892f072f8fff4
+v = np.linspace(5e-3, 12, 50)
 k0 = 5e-2
 s = time.time()
 S = [momint_adapt(x, nu, Tau, muau, GPIMC, 5e-2) for x in v]
 runtime = 'run time = {} s\n'.format(time.time() - s)
-parameters = 'Te = {} [eV]\nne = {:e} [1/cc]\nmu = {} [au]\n'.\
+parameters = 'Te = {} [eV]\nne = {:0.3e} [1/cc]\nmu = {} [au]\n'.\
              format(TeV, ne_cgs,muau)
 head = 'v[a.u.]    stopping number[a.u.]'
 S = np.asarray(S)
-print(S)
+# print(S)
 # Save data just in case something breaks
-<<<<<<< HEAD
-np.savetxt('stopdata_xmermin_carbon_2.txt', np.transpose([v, S]), 
-           header = runtime + parameters + head)
-=======
-# np.savetxt('stopdata_xmermin_hydrogen_1.txt', np.transpose([v, S]), 
-#            header = runtime + parameters + head)
->>>>>>> 47b457b3c5bec1b39f132ec7788892f072f8fff4
+np.savetxt('stopdata_mermin_Al 10ev 2.7gpcc (1).txt', np.transpose([v, S]), 
+            header = runtime + parameters + head)
+
 
 # # S = np.loadtxt('stopping_data_adapt_tmp.out') / kFau**2
 
