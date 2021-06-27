@@ -10,6 +10,240 @@ see: M. D. Barriga-Carrasco, PRE, 79, 027401 (2009)
 """
 import numpy as np
 from scipy.integrate import solve_ivp
+from scipy.integrate import quad_vec
+import scipy.optimize as opt
+
+def plasmafreq(density):
+    return np.sqrt(4*np.pi*density)
+
+def sumrule(density):
+    return np.pi/2 * plasmafreq(density)**2
+
+def genELF(dielfunc, k, w):
+    eps = dielfunc(k, w)
+    return eps.imag / (eps.imag**2 + eps.real**2)
+
+def modBG_wp(den, k, temp):
+    """
+    Modified Bohm-Gross dispersion relation, given in Glezner & Redmer, Rev.
+    Mod. Phys., 2009, Eqn (16).
+    
+    den - electron density (au)
+    k - wavenumber (au)
+    temp - thermal energy (au)
+    """  
+    wp    = np.sqrt(4*np.pi*den)
+    BG_wp = np.sqrt(wp**2 + 3*temp*k**2)
+    thermal_deBroglie = np.sqrt(2*np.pi/temp)
+    
+    return np.sqrt(BG_wp**2 + 3*temp*k**2 \
+                    * 0.088 * den * thermal_deBroglie**3 \
+                    + (k**2/2)**2)
+
+def ELFmax(dielfunc, k, prevroot, prevfun, directopt=True):
+    """
+    Finds the maximum position of the electron loss function (ELF).
+    
+    Note: this will stop working for small values of k, so be wary!
+    One way to make sure that this function is still working is to check that
+    the ELF maximum for a larger k is less than the ELF maximum for a smaller
+    k (for the RPA dielectric function).
+    
+    """
+    f = lambda x: -genELF(dielfunc, k, x)
+    
+    root = 0
+    feval = 0
+    bounds = (0, prevroot)
+    if directopt:
+        # Look for minimum of ELF by optimizing the ELF directly
+        boundsroot = opt.minimize_scalar(f, bounds=bounds, method='bounded')
+        # if -boundsroot.fun <= prevfun:
+        #     directopt = False
+        # else:
+        #     root = boundsroot.x
+        #     feval = -boundsroot.fun
+        root = boundsroot.x
+        feval = -boundsroot.fun
+    if not directopt:
+        # Look for the minimum of the ELF by finding the second zero of the
+        # real part of the dielectric function.
+        reeps = lambda x : dielfunc(k, x).real
+        # Find the zero
+        root = opt.newton(reeps, prevroot)
+        feval = -f(root)
+
+    return root, feval, directopt
+
+def omegaintegral(dielfunc, v, k, collfreq, temp, chempot, ELFmaxpos,
+                  ELFmaxval, density, vlow=0):
+    """
+    Calculates the inner, omega integral for the dielectric stopping power
+
+    Parameters
+    ----------
+    dielfunc : function, of the form f(x, y)
+        Dielectric function.
+    v : scalar
+        Initial charged particle velocity.
+    k : scalar
+        Wavenumber.
+    temp : scalar
+        temperature.
+    chempot : scalar
+        Chemical potential.
+    ELFmaxpos: scalar
+        Position in omega-space for a given k of the electron loss function
+        (ELF).
+    ELFmaxval: scalar
+        Value of ELF at ELFmaxpos.
+    sumrule: scalar
+        Sum rule value.
+    vlow : scalar, optional
+        This parameter is useful for the sequential stopping function. It
+        represents the lower integration limit for the omega integral. 
+        The default is 0.
+
+    Returns
+    -------
+    omegaint : float
+        Value for the omega integral for a given v, k
+
+    """
+    sr = sumrule(density)
+    # plasma frequency
+    wp = plasmafreq(density)
+    
+    # A rough lower bound approximate width of peak, most meaningful for small
+    # values of k when the ELF is very sharp.
+    srwidth = sr / ELFmaxval
+       
+    # A width associated with the wavenumber, k, and the temperature, temp.
+    # This is a conservative upper bound made to capture all of the integrand
+    # (with some heuristically motivated approximations).
+    kwidth = np.sqrt(2*(10*temp + abs(chempot)))*k + collfreq(0).real*1e3
+    
+    width = np.minimum(srwidth, kwidth)
+      
+    # Define our integration regions
+    regions = np.zeros(4)
+    
+    regions[1] =  np.maximum(0., ELFmaxpos - width)
+    regions[2] = ELFmaxpos + width
+    # This region is important for small k, when srwidth becomes really small.
+    regions[3] = np.maximum(ELFmaxpos + kwidth, k*v)
+    
+    
+    
+    # Where to place k*v with respect to the regions above
+    kvi = np.searchsorted(regions, k*v)
+    regions = np.insert(regions, kvi, k*v)
+
+    # integrand
+    f = lambda x, y : x * genELF(dielfunc, k, x)
+    
+    # integral from [0, kv] and from [0, \infty)
+    # If kvi == 0, then k*v = 0, don't need to do this integral
+    omegaint = 0.
+    omegaint_allspace = 0.
+    
+    for i in range(1, len(regions)):
+        I = solve_ivp(f, (regions[i-1], regions[i]), [0],
+                      rtol=1e-6, vectorized=True)
+        # print("nevals{} = {}".format(i, I.nfev))
+        omegaint_allspace += I.y[0][-1]
+        # w = np.linspace(regions[i-1], regions[i], 500)
+        # omegaint_allspace += np.trapz(f(w), w)
+        
+        if kvi == i:
+            omegaint = omegaint_allspace
+        
+
+    # Check the sum rule
+    error = (sr - omegaint_allspace)/sr
+        
+    
+    return omegaint, width, error, regions
+        
+
+def omegaintegral_check(dielfunc, v, collfreq, temp, chempot, density,
+                        kgrid=None):
+    """
+    Function that makes it easy to check the omega integral by eye (not cool!)
+
+    Parameters
+    ----------
+    v : TYPE
+        DESCRIPTION.
+    dielfunc : TYPE
+        DESCRIPTION.
+    temp : TYPE
+        DESCRIPTION.
+    chempot : TYPE
+        DESCRIPTION.
+    density : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
+    sr = sumrule(density)
+    wp = plasmafreq(density)
+    
+    ## Upper limit for k integral
+    # tempwidth is a temperature-based correction to the typically upper bound
+    # seen in the literature.
+    tempwidth = np.sqrt(2*(10*temp + abs(chempot)))                                 
+    kupperbound= 2*(v +  tempwidth)
+    # Define grid in k-space
+    if kgrid is None:
+        kgrid = np.geomspace(5e-2, kupperbound, 100)
+    
+    omegaint = np.zeros(len(kgrid))
+    directopt = True
+    
+    # inital guess
+    ELFmaxpos = modBG_wp(density, kgrid[-1], temp)
+    ELFmaxval = -1
+    
+    # Find maximum positions of ELF, working backwards starting from larger
+    # values of k.
+    for i, k  in reversed(list(enumerate(kgrid))):
+        prevpos =  ELFmaxpos + tempwidth * kgrid[-1]
+        ELFmaxpos, ELFmaxval, directopt = ELFmax(dielfunc, k, prevpos,
+                                                 ELFmaxval, directopt)
+        # if prevval > ELFmaxval:
+        #     break
+
+        omegaint[i], delta, error,reg = omegaintegral(dielfunc, v, k, collfreq,
+                                                      temp, chempot, ELFmaxpos,
+                                                      ELFmaxval, density)
+        
+        SRsatisfied = abs(error) < 5e-2
+        
+        if (not SRsatisfied):
+            omegaint[i] = -omegaint[i]
+            print("########## SUMRULE NOT SATISFIED ############")
+            print("k = {:.15f}".format(k))
+            print("ELF max pos = ", ELFmaxpos)
+            print("regions = ", reg)
+            print("ELF max val = ", ELFmaxval)
+            print("error = {:.3f}".format(error))
+
+        # delta is roughly related to how sharp/thin the ELF peak is.
+        # When it is small *enough*, we treat it as a delta function centered
+        # at the plasma frequency, wp. The integrals can then be approximately
+        # done analytically.
+        # if (not SRsatisfied) and delta < 1e-5:
+        #     omegaint[(kgrid*v >= wp - delta)*(kgrid < k)] = sr
+        #     break
+                
+    
+    return omegaint, kgrid
+    # kintegrand = 1/kgrid * omegaint
+    # kintegral = np.trapz(kintegrand, kgrid)
 
 def stopnumber(v, elf, elfargs, wmin=0, kmin=0, wtol=(1e-6,1e-6), vlow=0):
     '''
@@ -117,3 +351,19 @@ def sequentialstopping(varr, elf, T, mu, wmin, kmin, L0=0):
                           vlow=varr[i-1])
 
     return np.cumsum(L)
+
+
+
+if __name__=='__main__':
+    import fdint
+    import dielectricfunction_symln.Mermin.MerminDielectric as MD
+    import matplotlib.pyplot as plt
+    
+    t = 0.03
+    mu = 0.3
+    dielfunc = lambda k, w : MD.MerminDielectric(k, w, 0.1, t, mu)
+    
+    den = (2*t)**(3/2) / (2 * np.pi**2) * fdint.fdk(k=1/2., phi=mu/t)
+    
+    I, k = omegaintegral_check(dielfunc, 6, t, mu, den)
+    plt.plot(k, I)
