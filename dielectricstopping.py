@@ -192,6 +192,9 @@ def omegaintegral_check(dielfunc, v, collfreq, temp, chempot, density,
     sr = sumrule(density)
     wp = plasmafreq(density)
     
+    # String if we don't satisfy the sum rule
+    errmssg = ""
+    
     ## Upper limit for k integral
     # tempwidth is a temperature-based correction to the typically upper bound
     # seen in the literature.
@@ -202,6 +205,7 @@ def omegaintegral_check(dielfunc, v, collfreq, temp, chempot, density,
         kgrid = np.geomspace(5e-2, kupperbound, 100)
     
     omegaint = np.zeros(len(kgrid))
+    error    = np.zeros(len(kgrid))
     directopt = True
     
     # inital guess
@@ -217,20 +221,22 @@ def omegaintegral_check(dielfunc, v, collfreq, temp, chempot, density,
         # if prevval > ELFmaxval:
         #     break
 
-        omegaint[i], delta, error,reg = omegaintegral(dielfunc, v, k, collfreq,
-                                                      temp, chempot, ELFmaxpos,
-                                                      ELFmaxval, density)
+        omegaint[i], delta, error[i], reg = omegaintegral(dielfunc, v, k, 
+                                                          collfreq, temp, 
+                                                          chempot, ELFmaxpos,
+                                                          ELFmaxval, density)
         
         SRsatisfied = abs(error) < 5e-2
         
         if (not SRsatisfied):
             omegaint[i] = -omegaint[i]
-            print("########## SUMRULE NOT SATISFIED ############")
-            print("k = {:.15f}".format(k))
-            print("ELF max pos = ", ELFmaxpos)
-            print("regions = ", reg)
-            print("ELF max val = ", ELFmaxval)
-            print("error = {:.3f}".format(error))
+            errmssg = "########## SUMRULE NOT SATISFIED ############\n"\
+                    + "k = {:.15f}\n".format(k)\
+                    + "ELF max pos = {}\n".format( ELFmaxpos)\
+                    +"regions = {}\n".format( reg)\
+                    + "ELF max val = {}\n".format( ELFmaxval)\
+                    + "error = {:.3f}\n".format(error)
+            print(errmssg)
 
         # delta is roughly related to how sharp/thin the ELF peak is.
         # When it is small *enough*, we treat it as a delta function centered
@@ -241,7 +247,7 @@ def omegaintegral_check(dielfunc, v, collfreq, temp, chempot, density,
         #     break
                 
     
-    return omegaint, kgrid
+    return omegaint, kgrid, error
     # kintegrand = 1/kgrid * omegaint
     # kintegral = np.trapz(kintegrand, kgrid)
 
