@@ -235,7 +235,7 @@ def omegaintegral_check(dielfunc, v, collfreq, temp, chempot, density,
                     + "ELF max pos = {}\n".format( ELFmaxpos)\
                     +"regions = {}\n".format( reg)\
                     + "ELF max val = {}\n".format( ELFmaxval)\
-                    + "error = {:.3f}\n".format(error)
+                    + "error = {:.3f}\n".format(error[i])
             print(errmssg)
 
         # delta is roughly related to how sharp/thin the ELF peak is.
