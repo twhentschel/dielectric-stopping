@@ -121,9 +121,9 @@ def omegaintegral(dielfunc, v, k, collfreq, temp, chempot, ELFmaxpos,
     # A width associated with the wavenumber, k, and the temperature, temp.
     # This is a conservative upper bound made to capture all of the integrand
     # (with some heuristically motivated approximations).
-    kwidth = np.sqrt(2*(10*temp + abs(chempot)))*k + collfreq(0).real*1e3
+    tempwidth = np.sqrt(2*(10*temp + abs(chempot)))*k + collfreq(0).real*1e3
     
-    width = np.minimum(srwidth, kwidth)
+    width = np.minimum(srwidth, tempwidth)
       
     # Define our integration regions
     regions = np.zeros(4)
@@ -131,7 +131,7 @@ def omegaintegral(dielfunc, v, k, collfreq, temp, chempot, ELFmaxpos,
     regions[1] =  np.maximum(0., ELFmaxpos - width)
     regions[2] = ELFmaxpos + width
     # This region is important for small k, when srwidth becomes really small.
-    regions[3] = np.maximum(ELFmaxpos + kwidth, k*v)
+    regions[3] = np.maximum(ELFmaxpos + tempwidth, k*v)
     
     
     
@@ -198,7 +198,7 @@ def omegaintegral_check(dielfunc, v, collfreq, temp, chempot, density,
     ## Upper limit for k integral
     # tempwidth is a temperature-based correction to the typically upper bound
     # seen in the literature.
-    tempwidth = np.sqrt(2*(10*temp + abs(chempot)))                                 
+    tempwidth = np.sqrt(2*(10*temp + abs(chempot)))                                
     kupperbound= 2*(v +  tempwidth)
     # Define grid in k-space
     if kgrid is None:
@@ -215,7 +215,7 @@ def omegaintegral_check(dielfunc, v, collfreq, temp, chempot, density,
     # Find maximum positions of ELF, working backwards starting from larger
     # values of k.
     for i, k  in reversed(list(enumerate(kgrid))):
-        prevpos =  ELFmaxpos + tempwidth * kgrid[-1]
+        prevpos =  ELFmaxpos + tempwidth * kgrid[-1]  + collfreq(0).real*1e3
         ELFmaxpos, ELFmaxval, directopt = ELFmax(dielfunc, k, prevpos,
                                                  ELFmaxval, directopt)
         # if prevval > ELFmaxval:
