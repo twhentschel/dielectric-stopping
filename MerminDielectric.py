@@ -201,7 +201,7 @@ def generalRPAdielectric(k, omega, nu, kBT, mu):
     # realint = lambda x : realintegrand(x, k, omega, nu, kBT, mu)
     # All transformed integrations fall roughly within the same region in the
     # transformed space
-    t = np.linspace(-2.5*np.ones(N), 2.5*np.ones(N), 200)
+    t = np.linspace(-2.5*np.ones(N), 2.5*np.ones(N), 1000)
     tempwidth = np.sqrt(2*np.abs(mu + 10*kBT))
     realsolve =   np.trapz(realint(t, (np.zeros(N) , p1)), t, axis=0) \
                 + np.trapz(realint(t, (p1, p2)), t, axis=0) \
@@ -245,7 +245,7 @@ def generalRPAdielectric(k, omega, nu, kBT, mu):
     pdiff = np.sort(pdiff, axis=0)
     # Linearly interpolate between the difficult point +/- their widths to
     # create a set of integration regions bounded by these points +/- widths
-    intregions = np.linspace(pdiff[0:7], pdiff[1:8], 25)
+    intregions = np.linspace(pdiff[0:7], pdiff[1:8], 200)
     # Integrate within each of the regions
     imagintegrateregions = np.trapz(imagint(intregions), intregions, axis=0)
     # Add up the integrations between each region, resulting in an array of
