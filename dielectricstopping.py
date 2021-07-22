@@ -58,13 +58,11 @@ def ELFmax(dielfunc, k, prevroot, prevfun, directopt=True):
     if directopt:
         # Look for minimum of ELF by optimizing the ELF directly
         boundsroot = opt.minimize_scalar(f, bounds=bounds, method='bounded')
-        # if -boundsroot.fun <= prevfun:
-        #     directopt = False
-        # else:
-        #     root = boundsroot.x
-        #     feval = -boundsroot.fun
-        root = boundsroot.x
-        feval = -boundsroot.fun
+        if -boundsroot.fun <= prevfun:
+            directopt = False
+        else:
+            root = boundsroot.x
+            feval = -boundsroot.fun
     if not directopt:
         # Look for the minimum of the ELF by finding the second zero of the
         # real part of the dielectric function.
@@ -214,17 +212,30 @@ def omegaintegral_check(dielfunc, v, collfreq, temp, chempot, density,
     
     # Find maximum positions of ELF, working backwards starting from larger
     # values of k.
+    deltafunc = False
     for i, k  in reversed(list(enumerate(kgrid))):
-        prevpos =  ELFmaxpos + tempwidth * kgrid[-1]  + collfreq(0).real*1e3
+        prevpos =  ELFmaxpos
         ELFmaxpos, ELFmaxval, directopt = ELFmax(dielfunc, k, prevpos,
                                                  ELFmaxval, directopt)
         # if prevval > ELFmaxval:
         #     break
-
         omegaint[i], delta, error[i], reg = omegaintegral(dielfunc, v, k, 
-                                                          collfreq, temp, 
-                                                          chempot, ELFmaxpos,
-                                                          ELFmaxval, density)
+                                                      collfreq, temp, 
+                                                      chempot, ELFmaxpos,
+                                                      ELFmaxval, density)
+        
+        # For small values of k (depends on the plasma frequency), the ELF has
+        # a very sharp, delta function like peak that I could never hope to 
+        # integrate numerically. Instead, we know that this peak contains a 
+        # majority of the area under the curve (the sum rule value), with only
+        # a little area existing before the position of this peak. Beyond the 
+        # location of the peak, the ELF drops off extremely rapidly with omega.
+        srwidth = sr / ELFmaxval
+        if srwidth <= 1e-6 or deltafunc:
+            deltafunc = True
+            if k*v > ELFmaxpos:
+                omegaint[i] = sr
+            error[i] = 0.
         
         SRsatisfied = abs(error[i]) < 5e-2
         
@@ -360,16 +371,16 @@ def sequentialstopping(varr, elf, T, mu, wmin, kmin, L0=0):
 
 
 
-if __name__=='__main__':
-    import fdint
-    import dielectricfunction_symln.Mermin.MerminDielectric as MD
-    import matplotlib.pyplot as plt
+# if __name__=='__main__':
+#     import fdint
+#     import dielectricfunction_symln.Mermin.MerminDielectric as MD
+#     import matplotlib.pyplot as plt
     
-    t = 0.03
-    mu = 0.3
-    dielfunc = lambda k, w : MD.MerminDielectric(k, w, 0.1, t, mu)
+#     t = 0.03
+#     mu = 0.3
+#     dielfunc = lambda k, w : MD.MerminDielectric(k, w, 0.1, t, mu)
     
-    den = (2*t)**(3/2) / (2 * np.pi**2) * fdint.fdk(k=1/2., phi=mu/t)
+#     den = (2*t)**(3/2) / (2 * np.pi**2) * fdint.fdk(k=1/2., phi=mu/t)
     
-    I, k = omegaintegral_check(dielfunc, 6, t, mu, den)
-    plt.plot(k, I)
+#     I, k = omegaintegral_check(dielfunc, 6, t, mu, den)
+#     plt.plot(k, I)
