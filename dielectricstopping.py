@@ -21,6 +21,8 @@ def sumrule(density):
 
 def genELF(dielfunc, k, w):
     eps = dielfunc(k, w)
+    if (eps.imag**2 + eps.real**2) == 0:
+        raise ValueError
     return eps.imag / (eps.imag**2 + eps.real**2)
 
 def modBG_wp(den, k, temp):
@@ -68,8 +70,16 @@ def ELFmax(dielfunc, k, prevroot, prevfun, directopt=True):
         # real part of the dielectric function.
         reeps = lambda x : dielfunc(k, x).real
         # Find the zero
-        root = opt.newton(reeps, prevroot)
-        feval = -f(root)
+        try:
+            root = opt.newton(reeps, prevroot)
+        except RuntimeError:
+            root = prevroot
+            print("Newton failed @ k = {}".format(k))
+        try:
+            # We need to watch out for actual delta-functions
+            feval = -f(root)
+        except ValueError:
+            feval = prevfun
 
     return root, feval, directopt
 
