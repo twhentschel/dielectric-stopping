@@ -182,8 +182,8 @@ def generalRPAdielectric(k, omega, nu, kBT, mu):
         nu = np.expand_dims(nu, axis=0)
         scalar_input = True
     # Length of omega
-    N = len(omega)
-        
+    N = np.max((omega.size, k.size, nu.size))
+
     # A small nu causes some problems when integrating the real and imaginary 
     # parts of the dielectric. 
     # When nu is small, the imaginary integrand is like a modulated step 
