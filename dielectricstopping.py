@@ -360,16 +360,16 @@ def sequentialstopping(varr, elf, T, mu, wmin, kmin, L0=0):
 
 
 
-if __name__=='__main__':
-    import fdint
-    import dielectricfunction_symln.Mermin.MerminDielectric as MD
-    import matplotlib.pyplot as plt
+# if __name__=='__main__':
+#     import fdint
+#     import dielectricfunction_symln.Mermin.MerminDielectric as MD
+#     import matplotlib.pyplot as plt
     
-    t = 0.03
-    mu = 0.3
-    dielfunc = lambda k, w : MD.MerminDielectric(k, w, 0.1, t, mu)
+#     t = 0.03
+#     mu = 0.3
+#     dielfunc = lambda k, w : MD.MerminDielectric(k, w, 0.1, t, mu)
     
-    den = (2*t)**(3/2) / (2 * np.pi**2) * fdint.fdk(k=1/2., phi=mu/t)
+#     den = (2*t)**(3/2) / (2 * np.pi**2) * fdint.fdk(k=1/2., phi=mu/t)
     
-    I, k = omegaintegral_check(dielfunc, 6, t, mu, den)
-    plt.plot(k, I)
+#     I, k = omegaintegral_check(dielfunc, 6, t, mu, den)
+#     plt.plot(k, I)
