@@ -76,7 +76,7 @@ def ELFmax(dielfunc, k, prevroot, prevfun, directopt=True):
     return root, feval, directopt
 
 def omegaintegral(dielfunc, v, k, collfreq, temp, chempot, ELFmaxpos,
-                  ELFmaxval, density, vlow=0):
+                  ELFmaxval, density, collwidthscale=1e3, vlow=0):
     """
     Calculates the inner, omega integral for the dielectric stopping power
 
@@ -99,6 +99,9 @@ def omegaintegral(dielfunc, v, k, collfreq, temp, chempot, ELFmaxpos,
         Value of ELF at ELFmaxpos.
     sumrule: scalar
         Sum rule value.
+    collwidthscale: scalar, optional
+        Parameter to control the scaling of the collision frequency contribution
+        to the overestimate of the width of the ELF peak. Default is 1e3.
     vlow : scalar, optional
         This parameter is useful for the sequential stopping function. It
         represents the lower integration limit for the omega integral. 
@@ -121,7 +124,8 @@ def omegaintegral(dielfunc, v, k, collfreq, temp, chempot, ELFmaxpos,
     # A width associated with the wavenumber, k, and the temperature, temp.
     # This is a conservative upper bound made to capture all of the integrand
     # (with some heuristically motivated approximations).
-    tempwidth = np.sqrt(2*(10*temp + abs(chempot)))*k + collfreq(0).real*1e3
+    tempwidth = np.sqrt(2*(10*temp + abs(chempot)))*k \
+                + collfreq(0).real * collwidthscale
     
     width = np.minimum(srwidth, tempwidth)
       
