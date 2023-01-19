@@ -1,3 +1,5 @@
+(out of date - see new repository: electron-dielectric for a recent version)
+
 # Dielectric Stopping Power
 Calculates the stopping power of a charged particle with some initial velocity using the dielectric function.
 A nice expression for the stopping power can be found in M. D. Barriga-Carrasco, PRE 79, 027401 (2009).
